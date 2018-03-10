@@ -96,7 +96,6 @@ namespace com {
 				
 				std::transform(++(explorer.faces_begin()), explorer.faces_end(), std::back_inserter(polys), [](const Face &face){
 					if (std::distance(face.fc_begin(), face.fc_end()) > 0) {
-						// Logger::clogger().log<VERB_WARN>
 						std::cerr << ("There shouldn't be a hole in the interior of this face, "
 									  "because it's the result of tracing a single polyline into the plane\n") << std::endl;
 					}

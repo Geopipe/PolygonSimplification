@@ -6,24 +6,6 @@
 #include <PolygonSimplification.hpp>
 
 using namespace com::geopipe::PolySimp;
-/*
-const CGALPoint problemNodes[12] =
-{	{68808., -15875.},
-	{73923., -12489.},
-	{73927., -12167.},
-	{71378., -08331.},
-	{69931., -09319.},
-	{70021., -09546.},
-	{69931., -09319.},
-	{66568., -11450.},
-	{67538., -13648.},
-	{67927., -13387.},
-	{68778., -15792.},
-	{68808., -15875.}};
- */
-
-// Recommended test case 1: bowties - 0 0 1 1 1 0 0 1
-// Recommended test case 2: overlaps - 0 0 1 0 0.5 0 1 1 1 0 0 1
 
 int main(int argc, const char* argv[]) {
 	int ret;
