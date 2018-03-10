@@ -22,9 +22,11 @@ const CGALPoint problemNodes[12] =
 	{68808., -15875.}};
  */
 
+// Recommended test case 1: bowties - 0 0 1 1 1 0 0 1
+// Recommended test case 2: overlaps - 0 0 1 0 0.5 0 1 1 1 0 0 1
+
 int main(int argc, const char* argv[]) {
 	int ret;
-	//	double
 	if((!argc % 2)){
 		std::cout << argv[0] << " x0 y0 [... xn yn]" << std::endl;
 		ret = -1;
@@ -40,14 +42,10 @@ int main(int argc, const char* argv[]) {
 		
 		CGALPolygon test(problemNodes.cbegin(), problemNodes.cend());
 		
-		CGALPolygonSet fixing = simplifyPolygon(test);
-		
-		std::vector<CGALPolygonWithHoles> fixed;
+		std::vector<CGALPolygon> fixed = simplifyPolygon(test);
 		std::cout << "Finished set: " <<  std::endl;
-		fixing.polygons_with_holes(std::back_inserter(fixed));
-		std::for_each(fixed.cbegin(), fixed.cend(), [](const CGALPolygonWithHoles &poly){
-			CGALPolygon hole_free = poly.outer_boundary();
-			std::cout << "\t" << hole_free << " ( is simple? " << hole_free.is_simple() << " )" << std::endl;
+		std::for_each(fixed.cbegin(), fixed.cend(), [](const CGALPolygon &poly){
+			std::cout << "\t" << poly << " ( is simple? " << poly.is_simple() << " )" << std::endl;
 		});
 		
 		ret = 0;

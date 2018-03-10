@@ -26,7 +26,6 @@
 
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Polygon_2.h>
-#include <CGAL/Polygon_set_2.h>
 
 #include <CGAL/Bounded_kernel.h>
 #include <CGAL/Nef_polyhedron_2.h>
@@ -42,7 +41,7 @@ namespace com {
 			using NefPolyhedron = CGAL::Nef_polyhedron_2<CGALBoundedKernel>;
 			using PolyExplorer = NefPolyhedron::Explorer;
 			
-			CGALPolygonSet simplifyPolygon(const CGALPolygon &inp, bool auto_close = true){
+			std::vector<CGALPolygon> simplifyPolygon(const CGALPolygon &inp, bool auto_close = true){
 				using std::pair;
 				using std::vector;
 				using PointIter = vector<CGALPoint>::const_iterator;
@@ -50,7 +49,6 @@ namespace com {
 				
 				vector<CGALPoint> points(inp.container());
 				vector<CGALPolygon> polys;
-				CGALPolygonSet output;
 				
 				if(auto_close){
 					points.push_back(inp.container().front());
@@ -112,20 +110,7 @@ namespace com {
 					return CGALPolygon(points.cbegin(), points.cend());
 				});
 				
-				std::for_each(polys.cbegin(), polys.cend(), [&output](const CGALPolygon &poly){
-					std::cout << "Inspect poly: " << poly << std::endl;
-					switch(poly.orientation()){
-						case CGAL::COUNTERCLOCKWISE:
-							std::cout << "\tInserting CCW poly" << std::endl;
-							output.join(poly);
-							break;
-						default:
-							std::cerr << "\tWe shouldn't have any non-CCW polys, because everything but the infinite face was a non-hole." << std::endl; break;
-					}
-				});
-				
-				return output;
-				
+				return polys;
 			}
 			
 			
