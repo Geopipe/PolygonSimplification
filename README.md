@@ -1,4 +1,4 @@
-# Polygon Simplification library
+# Polygon Simplification Library for C++
 
 Has CGAL as a dependency.
 
