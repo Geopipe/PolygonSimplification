@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <iostream>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
@@ -40,6 +41,43 @@ namespace com {
 			using CGALBoundedKernel = CGAL::Bounded_kernel<CGALKernel>;
 			using NefPolyhedron = CGAL::Nef_polyhedron_2<CGALBoundedKernel>;
 			using PolyExplorer = NefPolyhedron::Explorer;
+			
+			namespace detail {
+				using std::vector;
+				
+				auto identity = [](vector<CGALPoint> &p){ return p; };
+				auto points2Poly = [](vector<CGALPoint> &p){ return CGALPolygon(p.cbegin(), p.cend()); };
+				template<typename T> using BareType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+				
+				template<typename T, typename F = decltype(identity)> void extractFiniteFaces(const PolyExplorer &explorer, T& faces, F f = identity) {
+					using Face = BareType<decltype(*explorer.faces_begin())>;
+					std::transform(++(explorer.faces_begin()), explorer.faces_end(), std::back_inserter(faces), [&f](const Face &face){
+						/*
+						if (std::distance(face.fc_begin(), face.fc_end()) > 0) {
+							std::cerr << ("There shouldn't be a hole in the interior of this face, "
+										  "because it's the result of tracing a single polyline into the plane\n") << std::endl;
+						}
+						*/
+						
+						CGAL::Container_from_circulator<PolyExplorer::Halfedge_around_face_const_circulator> edges(face.halfedge());
+						using Edge = BareType<decltype(*edges.begin())>;
+						vector<CGALPoint> points;
+						// As long as we are using a Bounded_kernel, we don't need to worry that the vertex is actually a ray.
+						std::transform(edges.begin(), edges.end(), std::back_inserter(points), [](const Edge &edge){ return edge.vertex()->point(); });
+						
+						return f(points);
+					});
+				}
+				
+				void debugNef(const NefPolyhedron &poly) {
+					vector<CGALPolygon> temp;
+					PolyExplorer explorer = poly.explorer();
+					extractFiniteFaces(poly.explorer(), temp, points2Poly);
+					std::for_each(temp.cbegin(), temp.cend(), [](const CGALPolygon &poly){
+						std::cout << "\t" << poly << " ( is simple? " << poly.is_simple() << " )" << std::endl;
+					});
+				}
+			}
 			
 			std::vector<CGALPolygon> simplifyPolygon(const CGALPolygon &inp, bool auto_close = true){
 				using std::pair;
@@ -61,53 +99,24 @@ namespace com {
 				// Stage 1: resolve self-intersections at points.
 				NefPolyhedron area_pointset = (whole_plane - boundary_pointset).interior();
 				
-				auto explorer = area_pointset.explorer();
-				
 				vector<vector<CGALPoint> > components;
+				detail::extractFiniteFaces(area_pointset.explorer(), components);
 				
 				vector<PointIterPair> component_polys;
-				
-				using Face = decltype(*explorer.faces_begin());
-				std::transform(++(explorer.faces_begin()), explorer.faces_end(), std::back_inserter(components), [](const Face &face){
-					if (std::distance(face.fc_begin(), face.fc_end()) > 0) {
-						std::cerr << ("There shouldn't be a hole in the interior of this face, "
-									  "because it's the result of tracing a single polyline into the plane\n") << std::endl;
-					}
-					
-					CGAL::Container_from_circulator<PolyExplorer::Halfedge_around_face_const_circulator> edges(face.halfedge());
-					using Edge = decltype(*edges.begin());
-					vector<CGALPoint> points;
-					// As long as we are using a Bounded_kernel, we don't need to worry that the vertex is actually a ray.
-					std::transform(edges.begin(), edges.end(), std::back_inserter(points), [](const Edge &edge){ return edge.vertex()->point(); });
-					
-					return points;
-				});
-				
 				std::transform(components.cbegin(), components.cend(), std::back_inserter(component_polys), [](const vector<CGALPoint> &component) {
 					return (PointIterPair){component.cbegin(), component.cend()};
 				});
 				
-				
 				// Stage 2 remove collinearities
-				NefPolyhedron remainder(component_polys.cbegin(), component_polys.cend(), NefPolyhedron::POLYGONS);
-				NefPolyhedron remainder_clean = remainder.regularization();
-				explorer = remainder_clean.explorer();
-				
-				
-				std::transform(++(explorer.faces_begin()), explorer.faces_end(), std::back_inserter(polys), [](const Face &face){
-					if (std::distance(face.fc_begin(), face.fc_end()) > 0) {
-						std::cerr << ("There shouldn't be a hole in the interior of this face, "
-									  "because it's the result of tracing a single polyline into the plane\n") << std::endl;
-					}
-					
-					CGAL::Container_from_circulator<PolyExplorer::Halfedge_around_face_const_circulator> edges(face.halfedge());
-					using Edge = decltype(*edges.begin());
-					vector<CGALPoint> points;
-					// As long as we are using a Bounded_kernel, we don't need to worry that the vertex is actually a ray.
-					std::transform(edges.begin(), edges.end(), std::back_inserter(points), [](const Edge &edge){ return edge.vertex()->point(); });
-					
-					return CGALPolygon(points.cbegin(), points.cend());
+				NefPolyhedron remainder = std::accumulate(component_polys.cbegin(), component_polys.cend(), NefPolyhedron(NefPolyhedron::EMPTY), [](const NefPolyhedron& left, const PointIterPair& right){
+					return left.join(NefPolyhedron(right.first, right.second));
 				});
+				//detail::debugNef(remainder);
+				
+				NefPolyhedron remainder_clean = remainder.regularization().interior();
+				//detail::debugNef(remainder_clean);
+				
+				detail::extractFiniteFaces(remainder_clean.explorer(), polys, detail::points2Poly);
 				
 				return polys;
 			}
