@@ -91,7 +91,7 @@ namespace com {
 				// Debug the current set of polys:
 				std::for_each(component_polys.cbegin(), component_polys.cend(), [](const PointIterPair &pip){
 						std::for_each(pip.first, pip.second, [](const CGALPoint &p){
-							std::cout << p;
+							std::cout << p << " ";
 						});
 						std::cout << std::endl;
 				});
