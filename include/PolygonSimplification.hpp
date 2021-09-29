@@ -49,6 +49,17 @@ namespace com {
 				auto points2Poly = [](vector<CGALPoint> &p){ return CGALPolygon(p.cbegin(), p.cend()); };
 				template<typename T> using BareType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 				
+				/**************************************************
+				 * Extracts the finite faces from a Nef polyhedron
+				 * @arg explorer The `CGAL::Nef_polyhedron_2<CGALBoundedKernel>::Explorer
+				 * to traverse.
+				 * @arg faces The output container, must support
+				 * `std::back_inserter`. Typically `std::vector<E>
+				 * for some face-type `E`.
+				 * @arg f A functor from 
+				 * `std::vector<CGAL::Exact_predicates_exact_constructions_kernel::Point_2>` 
+				 * to `E`, where `E` is the element type of `faces`.
+				 **************************************************/
 				template<typename T, typename F = decltype(identity)> void extractFiniteFaces(const PolyExplorer &explorer, T& faces, F f = identity) {
 					using Face = BareType<decltype(*explorer.faces_begin())>;
 					std::transform(++(explorer.faces_begin()), explorer.faces_end(), std::back_inserter(faces), [&f](const Face &face){
@@ -68,7 +79,7 @@ namespace com {
 						return f(points);
 					});
 				}
-				
+				/// Dump some info on `poly` to `std::cout`.
 				void debugNef(const NefPolyhedron &poly) {
 					vector<CGALPolygon> temp;
 					PolyExplorer explorer = poly.explorer();
@@ -79,6 +90,40 @@ namespace com {
 				}
 			}
 			
+			/*******************************************************************************
+			 * Converts an edge soup into a set of simple, orientable, finite-area polygons.
+			 * 
+			 * 1. Subtract the edges of `inp` from an infinite plane and extract the finite faces. 
+			 * 2. Union result back together, and regularize (removing 0- and 1-D holes).
+			 * 3. Take the interior (removing 0-D intersections, no 1-D intersections can 
+			 * remain after step 2), and re-extract the finite faces.
+			 * 
+			 * Since this loses orientation information, it makes no assumptions
+			 * about whether nested polygons are holes.
+			 * 
+			 * If `auto_close = true`, it first makes explicit the implicit edge between
+			 * the first and last pointer of `inp`. Otherwise treats `inp` as a polyline
+			 * instead of a polygon.
+			 * 
+			 * <pre class="markdeep">
+			 * # Example 1: Repairing bowties
+			 * ## Input:
+			 * *************************************************************************
+			 * *   Input (Unorientable)                 Output                         *
+			 * *  .--------->.                         .--------->.                    *
+			 * *  ^          |                         ^          |                    *
+			 * *  |          |                         |  Face 1  |                    *
+			 * *  |          |                         |          v                    *
+			 * *  '<------------------'                '<--------. .------->.          *
+			 * *             |        ^                           ^         |          *
+			 * *             |        |                           | Face 2  |          *
+			 * *             |        |                           |         v          *
+			 * *             v.------>'                           '<--------.          *
+			 * *                                                                       *
+			 * *************************************************************************
+			 * 
+			 * </pre>
+			 *******************************************************************************/
 			std::vector<CGALPolygon> simplifyPolygon(const CGALPolygon &inp, bool auto_close = true){
 				using std::pair;
 				using std::vector;
