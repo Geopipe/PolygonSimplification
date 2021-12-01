@@ -40,16 +40,17 @@ namespace com {
 			};
 			
 			template<class Kernel>
-			struct cgal_infer_point_kernel< Point_2<Kernel> > {
+			struct cgal_infer_point_kernel<CGAL::Point_2<Kernel> > {
 				using type = Kernel;
 			};
 			
 			template<class Point>
 			using cgal_infer_point_kernel_t = typename cgal_infer_point_kernel<Point>::type;
 		}
-		template<typename Point = typename CGAL::Exact_predicates_exact_constructions_kernel::Point_2>
+
+		template<typename Point = typename CGAL::Point_2<CGAL::Exact_predicates_exact_constructions_kernel>>
 		class PolySimp {
-			using CGALKernel = PolySimpCustomization::cgal_infer_point_kernel_t<Point>
+			using CGALKernel = PolySimpCustomization::cgal_infer_point_kernel_t<Point>;
 			using CGALPoint = Point;
 			using CGALPolygon = CGAL::Polygon_2<CGALKernel, std::vector<Point>>;
 			
