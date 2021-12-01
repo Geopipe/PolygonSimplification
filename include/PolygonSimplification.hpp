@@ -33,9 +33,23 @@
 
 namespace com {
 	namespace geopipe {
-		template<typename Kernel = CGAL::Exact_predicates_exact_constructions_kernel, typename Point = typename Kernel::Point_2>
+		namespace PolySimpCustomization { 
+			template<class Point>
+			struct cgal_infer_point_kernel {
+				using type = typename Point::Kernel;
+			};
+			
+			template<class Kernel>
+			struct cgal_infer_point_kernel< Point_2<Kernel> > {
+				using type = Kernel;
+			};
+			
+			template<class Point>
+			using cgal_infer_point_kernel_t = typename cgal_infer_point_kernel<Point>::type;
+		}
+		template<typename Point = typename CGAL::Exact_predicates_exact_constructions_kernel::Point_2>
 		class PolySimp {
-			using CGALKernel = Kernel;
+			using CGALKernel = PolySimpCustomization::cgal_infer_point_kernel_t<Point>
 			using CGALPoint = Point;
 			using CGALPolygon = CGAL::Polygon_2<CGALKernel, std::vector<Point>>;
 			
